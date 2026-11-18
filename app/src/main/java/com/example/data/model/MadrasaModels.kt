@@ -88,7 +88,7 @@ enum class NoticeAudience(val labelBn: String) {
 @Keep
 data class Organization(
     val id: String = "",
-    val nameBn: String = "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা",
+    val nameBn: String = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
     val establishedYear: String = "১৯৯৫",
     val currencySymbol: String = "৳",
     val timezone: String = "Asia/Dhaka",

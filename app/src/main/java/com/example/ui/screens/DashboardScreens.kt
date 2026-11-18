@@ -118,7 +118,7 @@ fun AdminDashboardScreen(
                 ) {
                     Column {
                         Text(
-                            text = org?.nameBn ?: "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা",
+                            text = org?.nameBn ?: "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.Bold

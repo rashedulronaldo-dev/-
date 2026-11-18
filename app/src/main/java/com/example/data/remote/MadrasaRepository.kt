@@ -120,7 +120,7 @@ class MadrasaRepository(
                 dao.upsertOrganization(
                     OrganizationEntity(
                         id = orgId,
-                        nameBn = "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা",
+                        nameBn = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
                         establishedYear = "১৯৯৫",
                         currencySymbol = "৳",
                         timezone = "Asia/Dhaka",
@@ -131,6 +131,13 @@ class MadrasaRepository(
                 )
                 initializeChartOfAccounts(orgId)
                 logAudit("প্রতিষ্ঠান স্থাপন", "মাদরাসা ও হিসাববিজ্ঞান খাত স্বয়ংক্রিয়ভাবে চালু করা হয়েছে।", orgId)
+            } else if (existing.nameBn == "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা") {
+                dao.upsertOrganization(
+                    existing.copy(
+                        nameBn = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
+                        updatedAtMillis = System.currentTimeMillis()
+                    )
+                )
             }
             Result.success(Unit)
         } catch (e: CancellationException) {

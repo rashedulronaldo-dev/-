@@ -405,7 +405,7 @@ fun SettingsScreen(
     val org by viewModel.organization.collectAsStateWithLifecycle()
     val settings by viewModel.settings.collectAsStateWithLifecycle()
 
-    var orgName by remember(org) { mutableStateOf(org?.nameBn ?: "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা") }
+    var orgName by remember(org) { mutableStateOf(org?.nameBn ?: "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা") }
     var academicYear by remember(org) { mutableStateOf(org?.academicYear ?: "২০২৬") }
     var address by remember(org) { mutableStateOf(org?.address ?: "খেলার মাঠ, ঢাকা") }
     var phone by remember(org) { mutableStateOf(org?.phone ?: "০১৭০০-০০০০০০") }
@@ -497,6 +497,17 @@ fun SettingsScreen(
                     }
                 }
             }
+        }
+
+        item {
+            Text(
+                text = "অ্যাপ ডেভেলপার: MD Rashedul Islam",
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 8.dp)
+            )
         }
     }
 }

@@ -56,8 +56,8 @@ jobs:
         uses: softprops/action-gh-release@v2
         with:
           tag_name: latest
-          name: "Madrasa Management App (Latest APK)"
-          body: "Automated APK build for খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা."
+          name: "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা (APK)"
+          body: "Automated APK build for খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা."
           files: madrasa-app.apk
           prerelease: false
           overwrite_files: true

@@ -82,7 +82,7 @@ fun SplashScreen(
             )
             Spacer(modifier = Modifier.height(20.dp))
             Text(
-                text = "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা",
+                text = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
                 style = MaterialTheme.typography.headlineSmall,
                 color = Color.White,
                 fontWeight = FontWeight.Bold,
@@ -95,7 +95,7 @@ fun SplashScreen(
                 border = BorderStroke(1.dp, IslamicGold)
             ) {
                 Text(
-                    text = "প্রতিষ্ঠিত: ১৯৯৫  •  মাদরাসা পরিচালনা অ্যাপ",
+                    text = "প্রতিষ্ঠিত: ১৯৯৫",
                     style = MaterialTheme.typography.labelMedium,
                     color = IslamicGoldLight,
                     modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp)
@@ -108,5 +108,14 @@ fun SplashScreen(
                 strokeWidth = 3.dp
             )
         }
+        Text(
+            text = "অ্যাপ ডেভেলপার: MD Rashedul Islam",
+            style = MaterialTheme.typography.labelSmall,
+            color = IslamicGoldLight.copy(alpha = 0.85f),
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 20.dp)
+                .alpha(alpha)
+        )
     }
 }

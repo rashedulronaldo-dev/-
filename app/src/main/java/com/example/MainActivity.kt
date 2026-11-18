@@ -172,7 +172,7 @@ private fun MadrasaMainShell(
                             .padding(horizontal = 18.dp, vertical = 20.dp)
                     ) {
                         Text(
-                            text = "খেলার মাঠ নূরানী ও হাফিজিয়া মাদরাসা",
+                            text = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
                             style = MaterialTheme.typography.titleMedium,
                             color = Color.White,
                             fontWeight = FontWeight.Bold
@@ -203,6 +203,14 @@ private fun MadrasaMainShell(
                                 modifier = Modifier.padding(NavigationDrawerItemDefaults.ItemPadding)
                             )
                         }
+                        Spacer(modifier = Modifier.height(12.dp))
+                        HorizontalDivider(modifier = Modifier.padding(horizontal = 16.dp))
+                        Text(
+                            text = "অ্যাপ ডেভেলপার: MD Rashedul Islam",
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)
+                        )
                     }
                 }
             }
@@ -221,7 +229,7 @@ private fun MadrasaMainShell(
                                     fontWeight = FontWeight.Bold
                                 )
                                 Text(
-                                    text = "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা",
+                                    text = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা",
                                     style = MaterialTheme.typography.labelSmall,
                                     color = IslamicGoldLight,
                                     maxLines = 1,

@@ -97,7 +97,7 @@ object BengaliReportExporter {
                 c.drawRect(0f, 0f, pageWidth.toFloat(), 92f, headerPaint)
                 c.drawLine(0f, 92f, pageWidth.toFloat(), 92f, goldPaint)
 
-                val madrasaTitle = "খেলার মাঠ নূরানী তালিমুল কুরআন ও হাফিজিয়া মাদরাসা (প্রতিষ্ঠিত: ১৯৯৫)"
+                val madrasaTitle = "খেলার মাঠ নূরানী তালিমূল কোরআন ও হাফিজিয়া মাদরাসা (প্রতিষ্ঠিত: ১৯৯৫)"
                 val mLayout = StaticLayout.Builder.obtain(madrasaTitle, 0, madrasaTitle.length, titlePaint, contentWidth).build()
                 c.save()
                 c.translate(margin, 16f)
