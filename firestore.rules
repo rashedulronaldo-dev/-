@@ -1,0 +1,612 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // 1. Global Safety Net (Default Deny)
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    // 2. Hardened Primitives
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isValidId(id) {
+      return id is string && id.size() >= 1 && id.size() <= 128 && id.matches('^[a-zA-Z0-9_\\-]+$');
+    }
+
+    function incoming() {
+      return request.resource.data;
+    }
+
+    function existing() {
+      return resource.data;
+    }
+
+    function isValidTimestamp(ts) {
+      return ts is timestamp && ts <= request.time;
+    }
+
+    function isBootstrappedAdmin() {
+      return isSignedIn() &&
+             'email_verified' in request.auth.token &&
+             request.auth.token.email_verified == true &&
+             'email' in request.auth.token &&
+             request.auth.token.email == 'rase2443@gmail.com';
+    }
+
+    function memberPath(orgId, uid) {
+      return /databases/$(database)/documents/organizations/$(orgId)/members/$(uid);
+    }
+
+    function isOrgMember(orgId) {
+      return isSignedIn() && exists(memberPath(orgId, request.auth.uid));
+    }
+
+    function memberRole(orgId) {
+      return get(memberPath(orgId, request.auth.uid)).data.role;
+    }
+
+    function isOrgAdmin(orgId) {
+      return isBootstrappedAdmin() || (isOrgMember(orgId) && memberRole(orgId) == 'ADMIN');
+    }
+
+    function isOrgTeacher(orgId) {
+      return isOrgMember(orgId) && memberRole(orgId) == 'TEACHER';
+    }
+
+    function isBoundedStringList(arr, maxLen) {
+      return arr is list && arr.size() <= maxLen && (arr.size() == 0 || arr[0] is string);
+    }
+
+    function isValidDepartment(dept) {
+      return dept in ['NOORANI', 'NAZERA', 'HIFZ'];
+    }
+
+    // 3. Entity Validation Helpers
+    function isValidOrganization(data) {
+      return data.nameBn is string && data.nameBn.size() >= 2 && data.nameBn.size() <= 200 &&
+             data.establishedYear is string && data.establishedYear.size() >= 2 && data.establishedYear.size() <= 20 &&
+             data.currencySymbol is string && data.currencySymbol.size() >= 1 && data.currencySymbol.size() <= 10 &&
+             data.timezone is string && data.timezone.size() >= 2 && data.timezone.size() <= 60 &&
+             data.academicYear is string && data.academicYear.size() >= 2 && data.academicYear.size() <= 30 &&
+             data.ownerUid is string && data.ownerUid.size() >= 1 && data.ownerUid.size() <= 128 &&
+             (!('address' in data) || (data.address is string && data.address.size() <= 300)) &&
+             (!('phone' in data) || (data.phone is string && data.phone.size() <= 30)) &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidMember(data, orgId, uid) {
+      return data.uid == uid &&
+             data.orgId == orgId &&
+             data.email is string && data.email.size() >= 3 && data.email.size() <= 160 &&
+             data.displayName is string && data.displayName.size() >= 1 && data.displayName.size() <= 120 &&
+             data.role in ['ADMIN', 'TEACHER', 'PARENT'] &&
+             isBoundedStringList(data.assignedClasses, 20) &&
+             isBoundedStringList(data.linkedStudentIds, 20) &&
+             data.active is bool &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidStudent(data, orgId) {
+      return data.orgId == orgId &&
+             data.studentCode is string && data.studentCode.size() >= 2 && data.studentCode.size() <= 40 &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 120 &&
+             (!('photoUri' in data) || (data.photoUri is string && data.photoUri.size() <= 500)) &&
+             data.dateOfBirth is string && data.dateOfBirth.size() <= 30 &&
+             data.gender is string && data.gender.size() >= 1 && data.gender.size() <= 30 &&
+             data.fatherName is string && data.fatherName.size() >= 1 && data.fatherName.size() <= 120 &&
+             data.motherName is string && data.motherName.size() <= 120 &&
+             data.guardianPhone is string && data.guardianPhone.size() >= 5 && data.guardianPhone.size() <= 30 &&
+             (!('guardianUid' in data) || (data.guardianUid is string && data.guardianUid.size() <= 128)) &&
+             data.address is string && data.address.size() <= 300 &&
+             data.admissionDate is string && data.admissionDate.size() <= 30 &&
+             isValidDepartment(data.department) &&
+             data.className is string && data.className.size() >= 1 && data.className.size() <= 80 &&
+             data.rollNumber is string && data.rollNumber.size() >= 1 && data.rollNumber.size() <= 30 &&
+             (!('previousInstitution' in data) || (data.previousInstitution is string && data.previousInstitution.size() <= 200)) &&
+             data.emergencyContact is string && data.emergencyContact.size() <= 40 &&
+             data.archived is bool &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidTeacher(data, orgId) {
+      return data.orgId == orgId &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 120 &&
+             (!('photoUri' in data) || (data.photoUri is string && data.photoUri.size() <= 500)) &&
+             data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 30 &&
+             data.address is string && data.address.size() <= 300 &&
+             data.joiningDate is string && data.joiningDate.size() <= 30 &&
+             data.designation is string && data.designation.size() >= 1 && data.designation.size() <= 80 &&
+             data.qualification is string && data.qualification.size() <= 160 &&
+             data.monthlySalary is number && data.monthlySalary >= 0 && data.monthlySalary <= 10000000 &&
+             isValidDepartment(data.department) &&
+             isBoundedStringList(data.assignedClasses, 20) &&
+             data.loginEmail is string && data.loginEmail.size() <= 160 &&
+             (!('teacherUid' in data) || (data.teacherUid is string && data.teacherUid.size() <= 128)) &&
+             data.active is bool &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidGuardian(data, orgId) {
+      return data.orgId == orgId &&
+             data.fullName is string && data.fullName.size() >= 1 && data.fullName.size() <= 120 &&
+             data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 30 &&
+             (!('email' in data) || (data.email is string && data.email.size() <= 160)) &&
+             data.address is string && data.address.size() <= 300 &&
+             data.relation is string && data.relation.size() >= 1 && data.relation.size() <= 60 &&
+             (!('guardianUid' in data) || (data.guardianUid is string && data.guardianUid.size() <= 128)) &&
+             isBoundedStringList(data.linkedStudentIds, 20) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAttendance(data, orgId) {
+      return data.orgId == orgId &&
+             data.dateKey is string && data.dateKey.size() >= 8 && data.dateKey.size() <= 20 &&
+             data.personType in ['STUDENT', 'TEACHER'] &&
+             data.personId is string && data.personId.size() >= 1 && data.personId.size() <= 128 &&
+             data.personName is string && data.personName.size() >= 1 && data.personName.size() <= 120 &&
+             data.department is string && data.department.size() <= 30 &&
+             data.className is string && data.className.size() <= 80 &&
+             data.status in ['PRESENT', 'ABSENT', 'LEAVE', 'SICK'] &&
+             data.lateArrival is bool &&
+             (!('auditNote' in data) || (data.auditNote is string && data.auditNote.size() <= 300)) &&
+             data.syncEventId is string && data.syncEventId.size() >= 1 && data.syncEventId.size() <= 128 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidQuranProgress(data, orgId) {
+      return data.orgId == orgId &&
+             data.studentId is string && data.studentId.size() >= 1 && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+             isValidDepartment(data.department) &&
+             data.dateKey is string && data.dateKey.size() >= 8 && data.dateKey.size() <= 20 &&
+             data.lessonType is string && data.lessonType.size() >= 1 && data.lessonType.size() <= 60 &&
+             data.surahName is string && data.surahName.size() <= 100 &&
+             data.paraNumber is int && data.paraNumber >= 0 && data.paraNumber <= 30 &&
+             data.ayatRange is string && data.ayatRange.size() <= 60 &&
+             (!('arabicSample' in data) || (data.arabicSample is string && data.arabicSample.size() <= 500)) &&
+             data.accuracyPercent is int && data.accuracyPercent >= 0 && data.accuracyPercent <= 100 &&
+             data.mistakeCount is int && data.mistakeCount >= 0 && data.mistakeCount <= 500 &&
+             data.weakLesson is bool &&
+             data.approved is bool &&
+             (!('teacherComment' in data) || (data.teacherComment is string && data.teacherComment.size() <= 400)) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExam(data, orgId) {
+      return data.orgId == orgId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 140 &&
+             isValidDepartment(data.department) &&
+             data.className is string && data.className.size() >= 1 && data.className.size() <= 80 &&
+             data.subject is string && data.subject.size() >= 1 && data.subject.size() <= 100 &&
+             data.totalMarks is int && data.totalMarks >= 1 && data.totalMarks <= 1000 &&
+             data.examDate is string && data.examDate.size() <= 30 &&
+             data.published is bool &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidExamResult(data, orgId) {
+      return data.orgId == orgId &&
+             data.examId is string && data.examId.size() >= 1 && data.examId.size() <= 128 &&
+             data.examTitle is string && data.examTitle.size() >= 1 && data.examTitle.size() <= 140 &&
+             data.studentId is string && data.studentId.size() >= 1 && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+             data.department is string && data.department.size() <= 30 &&
+             data.className is string && data.className.size() <= 80 &&
+             data.subject is string && data.subject.size() <= 100 &&
+             data.totalMarks is int && data.totalMarks >= 1 && data.totalMarks <= 1000 &&
+             data.obtainedMarks is int && data.obtainedMarks >= 0 && data.obtainedMarks <= data.totalMarks &&
+             data.grade is string && data.grade.size() >= 1 && data.grade.size() <= 20 &&
+             data.position is int && data.position >= 0 && data.position <= 5000 &&
+             data.published is bool &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidInvoice(data, orgId) {
+      return data.orgId == orgId &&
+             data.invoiceNumber is string && data.invoiceNumber.size() >= 2 && data.invoiceNumber.size() <= 40 &&
+             data.studentId is string && data.studentId.size() >= 1 && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+             data.department is string && data.department.size() <= 30 &&
+             data.feeType in ['MONTHLY_TUITION', 'ADMISSION', 'EXAM', 'RESIDENTIAL', 'OTHER'] &&
+             data.billingMonth is string && data.billingMonth.size() >= 2 && data.billingMonth.size() <= 40 &&
+             data.totalAmount is number && data.totalAmount > 0 && data.totalAmount <= 10000000 &&
+             data.paidAmount is number && data.paidAmount >= 0 && data.paidAmount <= data.totalAmount &&
+             data.dueAmount is number && data.dueAmount >= 0 && data.dueAmount <= data.totalAmount &&
+             data.status in ['UNPAID', 'PARTIAL', 'PAID'] &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidPayment(data, orgId) {
+      return data.orgId == orgId &&
+             data.receiptNumber is string && data.receiptNumber.size() >= 2 && data.receiptNumber.size() <= 40 &&
+             data.invoiceId is string && data.invoiceId.size() >= 1 && data.invoiceId.size() <= 128 &&
+             data.studentId is string && data.studentId.size() >= 1 && data.studentId.size() <= 128 &&
+             data.studentName is string && data.studentName.size() >= 1 && data.studentName.size() <= 120 &&
+             data.amount is number && data.amount > 0 && data.amount <= 10000000 &&
+             data.gateway in ['CASH', 'BKASH', 'NAGAD', 'SSLCOMMERZ'] &&
+             data.transactionId is string && data.transactionId.size() >= 2 && data.transactionId.size() <= 80 &&
+             data.status in ['PENDING', 'VERIFIED', 'FAILED', 'REFUNDED'] &&
+             data.sandboxMode is bool &&
+             data.webhookVerified is bool &&
+             (!('note' in data) || (data.note is string && data.note.size() <= 300)) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAccount(data, orgId) {
+      return data.orgId == orgId &&
+             data.code is string && data.code.size() >= 2 && data.code.size() <= 20 &&
+             data.nameBn is string && data.nameBn.size() >= 2 && data.nameBn.size() <= 120 &&
+             data.accountType in ['ASSET', 'LIABILITY', 'EQUITY', 'INCOME', 'EXPENSE'] &&
+             data.balance is number && data.balance >= -100000000 && data.balance <= 100000000 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidJournalEntry(data, orgId) {
+      return data.orgId == orgId &&
+             data.entryDate is string && data.entryDate.size() >= 8 && data.entryDate.size() <= 30 &&
+             data.referenceNo is string && data.referenceNo.size() >= 2 && data.referenceNo.size() <= 60 &&
+             data.description is string && data.description.size() >= 2 && data.description.size() <= 300 &&
+             data.category is string && data.category.size() >= 2 && data.category.size() <= 60 &&
+             data.debitAccountCode is string && data.debitAccountCode.size() >= 2 && data.debitAccountCode.size() <= 20 &&
+             data.debitAccountName is string && data.debitAccountName.size() >= 2 && data.debitAccountName.size() <= 120 &&
+             data.creditAccountCode is string && data.creditAccountCode.size() >= 2 && data.creditAccountCode.size() <= 20 &&
+             data.creditAccountName is string && data.creditAccountName.size() >= 2 && data.creditAccountName.size() <= 120 &&
+             data.debitAccountCode != data.creditAccountCode &&
+             data.amount is number && data.amount > 0 && data.amount <= 100000000 &&
+             data.totalDebit is number && data.totalDebit == data.amount &&
+             data.totalCredit is number && data.totalCredit == data.totalDebit &&
+             data.status == 'POSTED' &&
+             data.entryType in ['STANDARD', 'REVERSAL'] &&
+             (!('reversesEntryId' in data) || (data.reversesEntryId is string && data.reversesEntryId.size() <= 128)) &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    function isValidDonation(data, orgId) {
+      return data.orgId == orgId &&
+             data.receiptNumber is string && data.receiptNumber.size() >= 2 && data.receiptNumber.size() <= 40 &&
+             data.donorName is string && data.donorName.size() >= 1 && data.donorName.size() <= 120 &&
+             data.phone is string && data.phone.size() >= 5 && data.phone.size() <= 30 &&
+             data.amount is number && data.amount > 0 && data.amount <= 100000000 &&
+             data.donationDate is string && data.donationDate.size() <= 30 &&
+             data.purpose is string && data.purpose.size() >= 1 && data.purpose.size() <= 200 &&
+             data.paymentMethod is string && data.paymentMethod.size() >= 1 && data.paymentMethod.size() <= 40 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidNotice(data, orgId) {
+      return data.orgId == orgId &&
+             data.title is string && data.title.size() >= 1 && data.title.size() <= 200 &&
+             data.body is string && data.body.size() >= 1 && data.body.size() <= 2000 &&
+             data.targetAudience in ['ALL', 'TEACHER', 'PARENT', 'STUDENT'] &&
+             data.important is bool &&
+             data.smsDispatched is bool &&
+             data.publishedDate is string && data.publishedDate.size() <= 30 &&
+             data.createdByUid is string && data.createdByUid.size() >= 1 && data.createdByUid.size() <= 128 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt) &&
+             isValidTimestamp(data.updatedAt);
+    }
+
+    function isValidAuditLog(data, orgId) {
+      return data.orgId == orgId &&
+             data.actorUid is string && data.actorUid.size() >= 1 && data.actorUid.size() <= 128 &&
+             data.actorName is string && data.actorName.size() >= 1 && data.actorName.size() <= 120 &&
+             data.action is string && data.action.size() >= 1 && data.action.size() <= 60 &&
+             data.summary is string && data.summary.size() >= 1 && data.summary.size() <= 400 &&
+             isBoundedStringList(data.readerUids, 50) &&
+             isValidTimestamp(data.createdAt);
+    }
+
+    // 4. Collection Rules
+    match /organizations/{orgId} {
+      allow get: if isValidId(orgId) && isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids || isOrgMember(orgId));
+      allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+      allow create: if isValidId(orgId) && isBootstrappedAdmin() &&
+                       incoming().ownerUid == request.auth.uid &&
+                       incoming().keys().hasAll(['nameBn', 'establishedYear', 'currencySymbol', 'timezone', 'academicYear', 'ownerUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                       incoming().keys().hasOnly(['nameBn', 'establishedYear', 'currencySymbol', 'timezone', 'academicYear', 'address', 'phone', 'ownerUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                       isValidOrganization(incoming());
+      allow update: if isValidId(orgId) && isOrgAdmin(orgId) &&
+                       incoming().ownerUid == existing().ownerUid &&
+                       incoming().createdAt == existing().createdAt &&
+                       isValidOrganization(incoming()) &&
+                       incoming().diff(existing()).affectedKeys().hasOnly(['nameBn', 'establishedYear', 'currencySymbol', 'timezone', 'academicYear', 'address', 'phone', 'readerUids', 'updatedAt']);
+      allow delete: if false;
+
+      match /members/{uid} {
+        allow get: if isValidId(orgId) && isValidId(uid) && isSignedIn() && (request.auth.uid == uid || isOrgAdmin(orgId));
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || existing().uid == request.auth.uid);
+        allow create: if isValidId(orgId) && isValidId(uid) && isSignedIn() &&
+                         incoming().keys().hasAll(['uid', 'orgId', 'email', 'displayName', 'role', 'assignedClasses', 'linkedStudentIds', 'active', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['uid', 'orgId', 'email', 'displayName', 'role', 'assignedClasses', 'linkedStudentIds', 'active', 'createdAt', 'updatedAt']) &&
+                         isValidMember(incoming(), orgId, uid) && (
+                           isOrgAdmin(orgId) ||
+                           (request.auth.uid == uid && incoming().role == 'PARENT' && incoming().assignedClasses.size() == 0 && incoming().linkedStudentIds.size() == 0)
+                         );
+        allow update: if isValidId(orgId) && isValidId(uid) && isSignedIn() &&
+                         incoming().uid == existing().uid &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidMember(incoming(), orgId, uid) && (
+                           (isOrgAdmin(orgId) && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'role', 'assignedClasses', 'linkedStudentIds', 'active', 'updatedAt'])) ||
+                           (request.auth.uid == uid && incoming().diff(existing()).affectedKeys().hasOnly(['displayName', 'updatedAt']))
+                         );
+        allow delete: if isValidId(orgId) && isValidId(uid) && isOrgAdmin(orgId);
+      }
+
+      match /students/{studentId} {
+        allow get: if isValidId(orgId) && isValidId(studentId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(studentId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'studentCode', 'fullName', 'dateOfBirth', 'gender', 'fatherName', 'motherName', 'guardianPhone', 'address', 'admissionDate', 'department', 'className', 'rollNumber', 'emergencyContact', 'archived', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'studentCode', 'fullName', 'photoUri', 'dateOfBirth', 'gender', 'fatherName', 'motherName', 'guardianPhone', 'guardianUid', 'address', 'admissionDate', 'department', 'className', 'rollNumber', 'previousInstitution', 'emergencyContact', 'archived', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidStudent(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(studentId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidStudent(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['studentCode', 'fullName', 'photoUri', 'dateOfBirth', 'gender', 'fatherName', 'motherName', 'guardianPhone', 'guardianUid', 'address', 'admissionDate', 'department', 'className', 'rollNumber', 'previousInstitution', 'emergencyContact', 'archived', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(studentId) && isOrgAdmin(orgId);
+      }
+
+      match /teachers/{teacherId} {
+        allow get: if isValidId(orgId) && isValidId(teacherId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(teacherId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'fullName', 'phone', 'address', 'joiningDate', 'designation', 'qualification', 'monthlySalary', 'department', 'assignedClasses', 'loginEmail', 'active', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'fullName', 'photoUri', 'phone', 'address', 'joiningDate', 'designation', 'qualification', 'monthlySalary', 'department', 'assignedClasses', 'loginEmail', 'teacherUid', 'active', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidTeacher(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(teacherId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidTeacher(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'photoUri', 'phone', 'address', 'joiningDate', 'designation', 'qualification', 'monthlySalary', 'department', 'assignedClasses', 'loginEmail', 'teacherUid', 'active', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(teacherId) && isOrgAdmin(orgId);
+      }
+
+      match /guardians/{guardianId} {
+        allow get: if isValidId(orgId) && isValidId(guardianId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(guardianId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'fullName', 'phone', 'address', 'relation', 'linkedStudentIds', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'fullName', 'phone', 'email', 'address', 'relation', 'guardianUid', 'linkedStudentIds', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidGuardian(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(guardianId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidGuardian(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['fullName', 'phone', 'email', 'address', 'relation', 'guardianUid', 'linkedStudentIds', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(guardianId) && isOrgAdmin(orgId);
+      }
+
+      match /attendance/{recordId} {
+        allow get: if isValidId(orgId) && isValidId(recordId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(recordId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'dateKey', 'personType', 'personId', 'personName', 'department', 'className', 'status', 'lateArrival', 'syncEventId', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'dateKey', 'personType', 'personId', 'personName', 'department', 'className', 'status', 'lateArrival', 'auditNote', 'syncEventId', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidAttendance(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(recordId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidAttendance(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'lateArrival', 'auditNote', 'syncEventId', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(recordId) && isOrgAdmin(orgId);
+      }
+
+      match /quran_progress/{progressId} {
+        allow get: if isValidId(orgId) && isValidId(progressId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(progressId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'studentId', 'studentName', 'department', 'dateKey', 'lessonType', 'surahName', 'paraNumber', 'ayatRange', 'accuracyPercent', 'mistakeCount', 'weakLesson', 'approved', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'studentId', 'studentName', 'department', 'dateKey', 'lessonType', 'surahName', 'paraNumber', 'ayatRange', 'arabicSample', 'accuracyPercent', 'mistakeCount', 'weakLesson', 'approved', 'teacherComment', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidQuranProgress(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(progressId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidQuranProgress(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['lessonType', 'surahName', 'paraNumber', 'ayatRange', 'arabicSample', 'accuracyPercent', 'mistakeCount', 'weakLesson', 'approved', 'teacherComment', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(progressId) && isOrgAdmin(orgId);
+      }
+
+      match /exams/{examId} {
+        allow get: if isValidId(orgId) && isValidId(examId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(examId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'title', 'department', 'className', 'subject', 'totalMarks', 'examDate', 'published', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'title', 'department', 'className', 'subject', 'totalMarks', 'examDate', 'published', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidExam(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(examId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidExam(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'department', 'className', 'subject', 'totalMarks', 'examDate', 'published', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(examId) && isOrgAdmin(orgId);
+      }
+
+      match /exam_results/{resultId} {
+        allow get: if isValidId(orgId) && isValidId(resultId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(resultId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'examId', 'examTitle', 'studentId', 'studentName', 'department', 'className', 'subject', 'totalMarks', 'obtainedMarks', 'grade', 'position', 'published', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'examId', 'examTitle', 'studentId', 'studentName', 'department', 'className', 'subject', 'totalMarks', 'obtainedMarks', 'grade', 'position', 'published', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidExamResult(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(resultId) && (isOrgAdmin(orgId) || isOrgTeacher(orgId)) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidExamResult(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['obtainedMarks', 'grade', 'position', 'published', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(resultId) && isOrgAdmin(orgId);
+      }
+
+      match /invoices/{invoiceId} {
+        allow get: if isValidId(orgId) && isValidId(invoiceId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(invoiceId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'invoiceNumber', 'studentId', 'studentName', 'department', 'feeType', 'billingMonth', 'totalAmount', 'paidAmount', 'dueAmount', 'status', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'invoiceNumber', 'studentId', 'studentName', 'department', 'feeType', 'billingMonth', 'totalAmount', 'paidAmount', 'dueAmount', 'status', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidInvoice(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(invoiceId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidInvoice(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['paidAmount', 'dueAmount', 'status', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(invoiceId) && isOrgAdmin(orgId);
+      }
+
+      match /payments/{paymentId} {
+        allow get: if isValidId(orgId) && isValidId(paymentId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(paymentId) && isSignedIn() &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'receiptNumber', 'invoiceId', 'studentId', 'studentName', 'amount', 'gateway', 'transactionId', 'status', 'sandboxMode', 'webhookVerified', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'receiptNumber', 'invoiceId', 'studentId', 'studentName', 'amount', 'gateway', 'transactionId', 'status', 'sandboxMode', 'webhookVerified', 'note', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidPayment(incoming(), orgId) && (
+                           isOrgAdmin(orgId) ||
+                           (incoming().status == 'PENDING' && incoming().webhookVerified == false)
+                         );
+        // Terminal state locking: only Admin can verify/refund, and REFUNDED is final
+        allow update: if isValidId(orgId) && isValidId(paymentId) && isOrgAdmin(orgId) &&
+                         existing().status != 'REFUNDED' &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidPayment(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['status', 'webhookVerified', 'note', 'readerUids', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      match /accounts/{accountId} {
+        allow get: if isValidId(orgId) && isValidId(accountId) && isOrgAdmin(orgId);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(accountId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'code', 'nameBn', 'accountType', 'balance', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'code', 'nameBn', 'accountType', 'balance', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidAccount(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(accountId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidAccount(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['nameBn', 'balance', 'readerUids', 'updatedAt']);
+        allow delete: if false;
+      }
+
+      match /journal_entries/{entryId} {
+        allow get: if isValidId(orgId) && isValidId(entryId) && isOrgAdmin(orgId);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(entryId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'entryDate', 'referenceNo', 'description', 'category', 'debitAccountCode', 'debitAccountName', 'creditAccountCode', 'creditAccountName', 'amount', 'totalDebit', 'totalCredit', 'status', 'entryType', 'createdByUid', 'readerUids', 'createdAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'entryDate', 'referenceNo', 'description', 'category', 'debitAccountCode', 'debitAccountName', 'creditAccountCode', 'creditAccountName', 'amount', 'totalDebit', 'totalCredit', 'status', 'entryType', 'reversesEntryId', 'createdByUid', 'readerUids', 'createdAt']) &&
+                         isValidJournalEntry(incoming(), orgId);
+        // Posted double-entry accounting records are strictly immutable (use reversal entries)
+        allow update: if false;
+        allow delete: if false;
+      }
+
+      match /donations/{donationId} {
+        allow get: if isValidId(orgId) && isValidId(donationId) && isOrgAdmin(orgId);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(donationId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'receiptNumber', 'donorName', 'phone', 'amount', 'donationDate', 'purpose', 'paymentMethod', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'receiptNumber', 'donorName', 'phone', 'amount', 'donationDate', 'purpose', 'paymentMethod', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidDonation(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(donationId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidDonation(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['donorName', 'phone', 'purpose', 'paymentMethod', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(donationId) && isOrgAdmin(orgId);
+      }
+
+      match /notices/{noticeId} {
+        allow get: if isValidId(orgId) && isValidId(noticeId) && isSignedIn() && (isOrgAdmin(orgId) || request.auth.uid in existing().readerUids);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(noticeId) && isOrgAdmin(orgId) &&
+                         incoming().createdByUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'title', 'body', 'targetAudience', 'important', 'smsDispatched', 'publishedDate', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'title', 'body', 'targetAudience', 'important', 'smsDispatched', 'publishedDate', 'createdByUid', 'readerUids', 'createdAt', 'updatedAt']) &&
+                         isValidNotice(incoming(), orgId);
+        allow update: if isValidId(orgId) && isValidId(noticeId) && isOrgAdmin(orgId) &&
+                         incoming().orgId == existing().orgId &&
+                         incoming().createdByUid == existing().createdByUid &&
+                         incoming().createdAt == existing().createdAt &&
+                         isValidNotice(incoming(), orgId) &&
+                         incoming().diff(existing()).affectedKeys().hasOnly(['title', 'body', 'targetAudience', 'important', 'smsDispatched', 'readerUids', 'updatedAt']);
+        allow delete: if isValidId(orgId) && isValidId(noticeId) && isOrgAdmin(orgId);
+      }
+
+      match /audit_logs/{logId} {
+        allow get: if isValidId(orgId) && isValidId(logId) && isOrgAdmin(orgId);
+        allow list: if isSignedIn() && (isBootstrappedAdmin() || request.auth.uid in existing().readerUids);
+        allow create: if isValidId(orgId) && isValidId(logId) && isSignedIn() &&
+                         incoming().actorUid == request.auth.uid &&
+                         incoming().keys().hasAll(['orgId', 'actorUid', 'actorName', 'action', 'summary', 'readerUids', 'createdAt']) &&
+                         incoming().keys().hasOnly(['orgId', 'actorUid', 'actorName', 'action', 'summary', 'readerUids', 'createdAt']) &&
+                         isValidAuditLog(incoming(), orgId);
+        allow update: if false;
+        allow delete: if false;
+      }
+    }
+  }
+}

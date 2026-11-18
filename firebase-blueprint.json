@@ -1,0 +1,422 @@
+{
+  "entities": {
+    "Organization": {
+      "title": "Organization",
+      "description": "Tenant madrasa organization metadata",
+      "type": "object",
+      "properties": {
+        "nameBn": { "type": "string", "description": "Madrasa Bengali name" },
+        "establishedYear": { "type": "string", "description": "Established year" },
+        "currencySymbol": { "type": "string", "description": "Default currency symbol" },
+        "timezone": { "type": "string", "description": "Default timezone" },
+        "address": { "type": "string", "description": "Campus address" },
+        "phone": { "type": "string", "description": "Contact phone" },
+        "academicYear": { "type": "string", "description": "Active academic year" },
+        "ownerUid": { "type": "string", "description": "Owner Firebase UID" },
+        "readerUids": { "type": "array", "description": "Authorized member UIDs" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["nameBn", "establishedYear", "currencySymbol", "timezone", "academicYear", "ownerUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Member": {
+      "title": "Member",
+      "description": "Organization user membership and RBAC role",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string" },
+        "orgId": { "type": "string" },
+        "email": { "type": "string" },
+        "displayName": { "type": "string" },
+        "role": { "type": "string", "enum": ["ADMIN", "TEACHER", "PARENT"] },
+        "assignedClasses": { "type": "array" },
+        "linkedStudentIds": { "type": "array" },
+        "active": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["uid", "orgId", "email", "displayName", "role", "assignedClasses", "linkedStudentIds", "active", "createdAt", "updatedAt"]
+    },
+    "Student": {
+      "title": "Student",
+      "description": "Madrasa student profile across Noorani, Nazera, and Hifz departments",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "studentCode": { "type": "string" },
+        "fullName": { "type": "string" },
+        "photoUri": { "type": "string" },
+        "dateOfBirth": { "type": "string" },
+        "gender": { "type": "string" },
+        "fatherName": { "type": "string" },
+        "motherName": { "type": "string" },
+        "guardianPhone": { "type": "string" },
+        "guardianUid": { "type": "string" },
+        "address": { "type": "string" },
+        "admissionDate": { "type": "string" },
+        "department": { "type": "string", "enum": ["NOORANI", "NAZERA", "HIFZ"] },
+        "className": { "type": "string" },
+        "rollNumber": { "type": "string" },
+        "previousInstitution": { "type": "string" },
+        "emergencyContact": { "type": "string" },
+        "archived": { "type": "boolean" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "studentCode", "fullName", "dateOfBirth", "gender", "fatherName", "motherName", "guardianPhone", "address", "admissionDate", "department", "className", "rollNumber", "emergencyContact", "archived", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Teacher": {
+      "title": "Teacher",
+      "description": "Madrasa teacher profile, salary, and assigned department/classes",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "photoUri": { "type": "string" },
+        "phone": { "type": "string" },
+        "address": { "type": "string" },
+        "joiningDate": { "type": "string" },
+        "designation": { "type": "string" },
+        "qualification": { "type": "string" },
+        "monthlySalary": { "type": "number" },
+        "department": { "type": "string", "enum": ["NOORANI", "NAZERA", "HIFZ"] },
+        "assignedClasses": { "type": "array" },
+        "loginEmail": { "type": "string" },
+        "teacherUid": { "type": "string" },
+        "active": { "type": "boolean" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "fullName", "phone", "address", "joiningDate", "designation", "qualification", "monthlySalary", "department", "assignedClasses", "loginEmail", "active", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Guardian": {
+      "title": "Guardian",
+      "description": "Parent or legal guardian linked to one or more students",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "fullName": { "type": "string" },
+        "phone": { "type": "string" },
+        "email": { "type": "string" },
+        "address": { "type": "string" },
+        "relation": { "type": "string" },
+        "guardianUid": { "type": "string" },
+        "linkedStudentIds": { "type": "array" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "fullName", "phone", "address", "relation", "linkedStudentIds", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "AttendanceRecord": {
+      "title": "AttendanceRecord",
+      "description": "Daily attendance record for students or teachers with offline sync audit",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "dateKey": { "type": "string" },
+        "personType": { "type": "string", "enum": ["STUDENT", "TEACHER"] },
+        "personId": { "type": "string" },
+        "personName": { "type": "string" },
+        "department": { "type": "string" },
+        "className": { "type": "string" },
+        "status": { "type": "string", "enum": ["PRESENT", "ABSENT", "LEAVE", "SICK"] },
+        "lateArrival": { "type": "boolean" },
+        "auditNote": { "type": "string" },
+        "syncEventId": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "dateKey", "personType", "personId", "personName", "department", "className", "status", "lateArrival", "syncEventId", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "QuranProgress": {
+      "title": "QuranProgress",
+      "description": "Noorani, Nazera, and Hifz daily learning & Sabak/Sabki/Manzil progress",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "department": { "type": "string", "enum": ["NOORANI", "NAZERA", "HIFZ"] },
+        "dateKey": { "type": "string" },
+        "lessonType": { "type": "string" },
+        "surahName": { "type": "string" },
+        "paraNumber": { "type": "integer" },
+        "ayatRange": { "type": "string" },
+        "arabicSample": { "type": "string" },
+        "accuracyPercent": { "type": "integer" },
+        "mistakeCount": { "type": "integer" },
+        "weakLesson": { "type": "boolean" },
+        "approved": { "type": "boolean" },
+        "teacherComment": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "studentId", "studentName", "department", "dateKey", "lessonType", "surahName", "paraNumber", "ayatRange", "accuracyPercent", "mistakeCount", "weakLesson", "approved", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Exam": {
+      "title": "Exam",
+      "description": "Examination definition and publish status",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "title": { "type": "string" },
+        "department": { "type": "string", "enum": ["NOORANI", "NAZERA", "HIFZ"] },
+        "className": { "type": "string" },
+        "subject": { "type": "string" },
+        "totalMarks": { "type": "integer" },
+        "examDate": { "type": "string" },
+        "published": { "type": "boolean" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "title", "department", "className", "subject", "totalMarks", "examDate", "published", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "ExamResult": {
+      "title": "ExamResult",
+      "description": "Student examination mark sheet entry",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "examId": { "type": "string" },
+        "examTitle": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "department": { "type": "string" },
+        "className": { "type": "string" },
+        "subject": { "type": "string" },
+        "totalMarks": { "type": "integer" },
+        "obtainedMarks": { "type": "integer" },
+        "grade": { "type": "string" },
+        "position": { "type": "integer" },
+        "published": { "type": "boolean" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "examId", "examTitle", "studentId", "studentName", "department", "className", "subject", "totalMarks", "obtainedMarks", "grade", "position", "published", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Invoice": {
+      "title": "Invoice",
+      "description": "Student fee invoice supporting partial payments and due calculation",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "invoiceNumber": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "department": { "type": "string" },
+        "feeType": { "type": "string", "enum": ["MONTHLY_TUITION", "ADMISSION", "EXAM", "RESIDENTIAL", "OTHER"] },
+        "billingMonth": { "type": "string" },
+        "totalAmount": { "type": "number" },
+        "paidAmount": { "type": "number" },
+        "dueAmount": { "type": "number" },
+        "status": { "type": "string", "enum": ["UNPAID", "PARTIAL", "PAID"] },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "invoiceNumber", "studentId", "studentName", "department", "feeType", "billingMonth", "totalAmount", "paidAmount", "dueAmount", "status", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Payment": {
+      "title": "Payment",
+      "description": "Fee payment and sandbox gateway verification record",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "invoiceId": { "type": "string" },
+        "studentId": { "type": "string" },
+        "studentName": { "type": "string" },
+        "amount": { "type": "number" },
+        "gateway": { "type": "string", "enum": ["CASH", "BKASH", "NAGAD", "SSLCOMMERZ"] },
+        "transactionId": { "type": "string" },
+        "status": { "type": "string", "enum": ["PENDING", "VERIFIED", "FAILED", "REFUNDED"] },
+        "sandboxMode": { "type": "boolean" },
+        "webhookVerified": { "type": "boolean" },
+        "note": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "receiptNumber", "invoiceId", "studentId", "studentName", "amount", "gateway", "transactionId", "status", "sandboxMode", "webhookVerified", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "LedgerAccount": {
+      "title": "LedgerAccount",
+      "description": "Double-entry accounting chart of accounts",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "code": { "type": "string" },
+        "nameBn": { "type": "string" },
+        "accountType": { "type": "string", "enum": ["ASSET", "LIABILITY", "EQUITY", "INCOME", "EXPENSE"] },
+        "balance": { "type": "number" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "code", "nameBn", "accountType", "balance", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "JournalEntry": {
+      "title": "JournalEntry",
+      "description": "Immutable double-entry accounting journal entry",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "entryDate": { "type": "string" },
+        "referenceNo": { "type": "string" },
+        "description": { "type": "string" },
+        "category": { "type": "string" },
+        "debitAccountCode": { "type": "string" },
+        "debitAccountName": { "type": "string" },
+        "creditAccountCode": { "type": "string" },
+        "creditAccountName": { "type": "string" },
+        "amount": { "type": "number" },
+        "totalDebit": { "type": "number" },
+        "totalCredit": { "type": "number" },
+        "status": { "type": "string", "enum": ["POSTED"] },
+        "entryType": { "type": "string", "enum": ["STANDARD", "REVERSAL"] },
+        "reversesEntryId": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "entryDate", "referenceNo", "description", "category", "debitAccountCode", "debitAccountName", "creditAccountCode", "creditAccountName", "amount", "totalDebit", "totalCredit", "status", "entryType", "createdByUid", "readerUids", "createdAt"]
+    },
+    "Donation": {
+      "title": "Donation",
+      "description": "Madrasa donation record with receipt",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "receiptNumber": { "type": "string" },
+        "donorName": { "type": "string" },
+        "phone": { "type": "string" },
+        "amount": { "type": "number" },
+        "donationDate": { "type": "string" },
+        "purpose": { "type": "string" },
+        "paymentMethod": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "receiptNumber", "donorName", "phone", "amount", "donationDate", "purpose", "paymentMethod", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "Notice": {
+      "title": "Notice",
+      "description": "Madrasa announcement and notification log",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "title": { "type": "string" },
+        "body": { "type": "string" },
+        "targetAudience": { "type": "string", "enum": ["ALL", "TEACHER", "PARENT", "STUDENT"] },
+        "important": { "type": "boolean" },
+        "smsDispatched": { "type": "boolean" },
+        "publishedDate": { "type": "string" },
+        "createdByUid": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "title", "body", "targetAudience", "important", "smsDispatched", "publishedDate", "createdByUid", "readerUids", "createdAt", "updatedAt"]
+    },
+    "AuditLog": {
+      "title": "AuditLog",
+      "description": "Security and activity audit trail",
+      "type": "object",
+      "properties": {
+        "orgId": { "type": "string" },
+        "actorUid": { "type": "string" },
+        "actorName": { "type": "string" },
+        "action": { "type": "string" },
+        "summary": { "type": "string" },
+        "readerUids": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["orgId", "actorUid", "actorName", "action", "summary", "readerUids", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/organizations/{orgId}": {
+      "schema": { "$ref": "#/entities/Organization" },
+      "description": "Tenant organization profile"
+    },
+    "/organizations/{orgId}/members/{uid}": {
+      "schema": { "$ref": "#/entities/Member" },
+      "description": "User role and permissions within organization"
+    },
+    "/organizations/{orgId}/students/{studentId}": {
+      "schema": { "$ref": "#/entities/Student" },
+      "description": "Enrolled students"
+    },
+    "/organizations/{orgId}/teachers/{teacherId}": {
+      "schema": { "$ref": "#/entities/Teacher" },
+      "description": "Teachers and staff"
+    },
+    "/organizations/{orgId}/guardians/{guardianId}": {
+      "schema": { "$ref": "#/entities/Guardian" },
+      "description": "Guardians linked to students"
+    },
+    "/organizations/{orgId}/attendance/{recordId}": {
+      "schema": { "$ref": "#/entities/AttendanceRecord" },
+      "description": "Attendance records synced from online or offline queue"
+    },
+    "/organizations/{orgId}/quran_progress/{progressId}": {
+      "schema": { "$ref": "#/entities/QuranProgress" },
+      "description": "Noorani, Nazera, and Hifz learning records"
+    },
+    "/organizations/{orgId}/exams/{examId}": {
+      "schema": { "$ref": "#/entities/Exam" },
+      "description": "Examinations"
+    },
+    "/organizations/{orgId}/exam_results/{resultId}": {
+      "schema": { "$ref": "#/entities/ExamResult" },
+      "description": "Student exam marks and grades"
+    },
+    "/organizations/{orgId}/invoices/{invoiceId}": {
+      "schema": { "$ref": "#/entities/Invoice" },
+      "description": "Student fee invoices"
+    },
+    "/organizations/{orgId}/payments/{paymentId}": {
+      "schema": { "$ref": "#/entities/Payment" },
+      "description": "Fee payments and gateway verification"
+    },
+    "/organizations/{orgId}/accounts/{accountId}": {
+      "schema": { "$ref": "#/entities/LedgerAccount" },
+      "description": "Double-entry chart of accounts"
+    },
+    "/organizations/{orgId}/journal_entries/{entryId}": {
+      "schema": { "$ref": "#/entities/JournalEntry" },
+      "description": "Immutable double-entry journal entries"
+    },
+    "/organizations/{orgId}/donations/{donationId}": {
+      "schema": { "$ref": "#/entities/Donation" },
+      "description": "Donation records"
+    },
+    "/organizations/{orgId}/notices/{noticeId}": {
+      "schema": { "$ref": "#/entities/Notice" },
+      "description": "Madrasa notices and notification logs"
+    },
+    "/organizations/{orgId}/audit_logs/{logId}": {
+      "schema": { "$ref": "#/entities/AuditLog" },
+      "description": "Activity audit logs"
+    }
+  }
+}
